@@ -1,0 +1,266 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+/* Custom fonts */
+
+/* Base styles */
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Custom utilities */
+.gradient-bg {
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #6366f1 100%);
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  body {
+    background: white;
+  }
+  
+  .page-break {
+    page-break-before: always;
+  }
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Focus styles */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+  outline: none;
+}
+
+/* Transition utilities */
+.transition-all {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Custom checkbox styles */
+input[type="checkbox"] {
+  cursor: pointer;
+}
+
+/* Table hover effects */
+tr:hover td {
+  background-color: inherit;
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+}
+
+/* Custom button styles */
+.btn-primary {
+  @apply bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors;
+}
+
+.btn-secondary {
+  @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors;
+}
+
+.btn-danger {
+  @apply bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors;
+}
+
+/* Card styles */
+.card {
+  @apply bg-white rounded-xl shadow-sm border border-gray-100;
+}
+
+/* Input styles */
+.input {
+  @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors;
+}
+
+/* Label styles */
+.label {
+  @apply block text-sm font-medium text-gray-700 mb-1;
+}
+
+/* Badge styles */
+.badge {
+  @apply px-2 py-0.5 text-xs font-medium rounded;
+}
+
+.badge-blue {
+  @apply bg-blue-100 text-blue-700;
+}
+
+.badge-green {
+  @apply bg-green-100 text-green-700;
+}
+
+.badge-red {
+  @apply bg-red-100 text-red-700;
+}
+
+.badge-yellow {
+  @apply bg-yellow-100 text-yellow-700;
+}
+
+.badge-purple {
+  @apply bg-purple-100 text-purple-700;
+}
+
+/* Two column layout for objective questions */
+.two-columns {
+  column-count: 2;
+  column-gap: 40px;
+}
+
+.two-columns > * {
+  break-inside: avoid;
+}
+
+/* Examination paper styles */
+.exam-paper {
+  font-family: 'Times New Roman', serif;
+  line-height: 1.6;
+}
+
+.exam-paper h1,
+.exam-paper h2,
+.exam-paper h3 {
+  font-family: 'Times New Roman', serif;
+}
+
+.question-number {
+  font-weight: bold;
+}
+
+.marks-indicator {
+  color: #666;
+  font-style: italic;
+}
+
+/* OMR sheet styles */
+.omr-option {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #333;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Answer booklet lines */
+.answer-line {
+  border-bottom: 1px solid #d1d5db;
+  height: 24px;
+}
+
+.answer-line-dotted {
+  border-bottom: 1px dotted #e5e7eb;
+  height: 24px;
+}
+
+/* Graph paper pattern */
+.graph-paper {
+  background-image: 
+    linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+    linear-gradient(to bottom, #e5e7eb 1px, transparent 1px);
+  background-size: 5mm 5mm;
+}
+
+/* Marking scheme styles */
+.marking-answer {
+  background-color: #e8f5e9;
+  border-left: 3px solid #4caf50;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.marking-working {
+  color: #1976d2;
+  font-style: italic;
+}
+
+/* Status indicators */
+.status-draft {
+  @apply bg-gray-100 text-gray-700;
+}
+
+.status-saved {
+  @apply bg-blue-100 text-blue-700;
+}
+
+.status-approved {
+  @apply bg-green-100 text-green-700;
+}
+
+.status-published {
+  @apply bg-purple-100 text-purple-700;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .two-columns {
+    column-count: 1;
+  }
+}
