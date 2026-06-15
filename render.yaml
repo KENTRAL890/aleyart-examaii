@@ -1,0 +1,59 @@
+# render.yaml — Render.com deployment config for ALEYART EXAMAI PRO
+# This file auto-configures everything when you connect your GitHub repo.
+
+services:
+  # ── Backend API (Node.js Web Service) ─────────────────────────────
+  - type: web
+    name: aleyart-examai-api
+    env: node
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy && node prisma/seed.js
+    startCommand: node src/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aleyart-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 24h
+      - key: ALLOWED_ORIGINS
+        value: https://aleyart-examai-pro.onrender.com
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+  # ── Frontend (Static Site) ─────────────────────────────────────────
+  - type: web
+    name: aleyart-examai-pro
+    env: static
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://aleyart-examai-api.onrender.com/api
+      - key: CI
+        value: false
+
+databases:
+  # ── PostgreSQL Database (Free 90 days) ─────────────────────────────
+  - name: aleyart-db
+    databaseName: aleyart_examai
+    user: aleyart_user
+    plan: free

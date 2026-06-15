@@ -1,0 +1,101 @@
+version: '3.9'
+
+# ─── ALEYART EXAMAI PRO — Docker Compose ─────────────────────────────────────
+# Full-stack: MySQL 8 + Node.js API + React Frontend (via Nginx)
+# Usage: docker compose up -d
+
+services:
+
+  # ─── MySQL 8 Database ───────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: aleyart_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-RootPassword123!}
+      MYSQL_DATABASE: aleyart_examai
+      MYSQL_USER: aleyart_user
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-StrongPassword123!}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - aleyart_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-RootPassword123!}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+      --max_connections=200
+      --innodb_buffer_pool_size=256M
+
+  # ─── Node.js API Backend ────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: aleyart_api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: mysql://aleyart_user:${MYSQL_PASSWORD:-StrongPassword123!}@db:3306/aleyart_examai
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: 24h
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://app.aleyartacademy.edu.gh}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@2025!}
+    ports:
+      - "5000:5000"
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - aleyart_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ─── Nginx Reverse Proxy + Static Files ─────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: aleyart_nginx
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./frontend/build:/usr/share/nginx/html:ro
+      - ssl_certs:/etc/ssl/certs/aleyart
+    networks:
+      - aleyart_net
+
+volumes:
+  mysql_data:
+    driver: local
+  uploads_data:
+    driver: local
+  ssl_certs:
+    driver: local
+
+networks:
+  aleyart_net:
+    driver: bridge

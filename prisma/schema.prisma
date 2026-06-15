@@ -1,0 +1,488 @@
+// ALEYART EXAMAI PRO — Prisma Schema
+// Database: PostgreSQL (Render/Supabase/Neon — free)
+//           MySQL 8 (local development)
+//
+// For LOCAL MySQL:  set DATABASE_URL="mysql://..." and change provider to "mysql"
+// For RENDER:       keep provider as "postgresql" (default)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  headteacher
+  examofficer
+  teacher
+}
+
+enum Gender {
+  Male
+  Female
+  Other
+}
+
+enum EducationalLevel {
+  EarlyChildhood
+  Primary
+  JuniorHighSchool
+}
+
+enum ExamStatus {
+  draft
+  pending
+  approved
+  rejected
+  archived
+}
+
+enum Difficulty {
+  Easy
+  Medium
+  Hard
+  Mixed
+}
+
+enum QuestionType {
+  MultipleChoice
+  FillInBlank
+  TrueOrFalse
+  Matching
+  ShortAnswer
+  Essay
+  Theory
+  Practical
+  Comprehension
+  Summary
+  Composition
+  CaseStudy
+  ProblemSolving
+}
+
+enum ExamType {
+  WeeklyTest
+  ClassTest
+  EndOfMonthTest
+  MidTermExamination
+  EndOfTermExamination
+  PromotionExamination
+  EntranceExamination
+  TransitionalExamination
+  BECEMock
+  Custom
+}
+
+enum Term {
+  Term1
+  Term2
+  Term3
+}
+
+enum BookletType {
+  Standard
+  Lined
+  GraphPaper
+  Branded
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  uuid          String    @unique @default(uuid())
+  staffId       String    @unique
+  fullName      String
+  email         String    @unique
+  password      String
+  phone         String?
+  qualification String?
+  position      String?
+  role          Role      @default(teacher)
+  isActive      Boolean   @default(true)
+  avatar        String?
+  lastLogin     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  teacherClasses  TeacherClass[]
+  teacherSubjects TeacherSubject[]
+  examsCreated    Examination[]    @relation("CreatedBy")
+  examsModified   Examination[]    @relation("ModifiedBy")
+  questionsAdded  Question[]
+  refreshTokens   RefreshToken[]
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model SchoolConfig {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+  updatedBy Int?
+
+  @@map("school_config")
+}
+
+model Class {
+  id        Int              @id @default(autoincrement())
+  name      String           @unique
+  level     EducationalLevel
+  sortOrder Int              @default(0)
+  isActive  Boolean          @default(true)
+  createdAt DateTime         @default(now())
+
+  students       Student[]
+  teacherClasses TeacherClass[]
+  exams          Examination[]
+  omrSheets      OMRSheet[]
+
+  @@map("classes")
+}
+
+model Subject {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  teacherSubjects TeacherSubject[]
+  exams           Examination[]
+  questions       Question[]
+
+  @@map("subjects")
+}
+
+model TeacherClass {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  classId   Int
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, classId])
+  @@index([userId])
+  @@index([classId])
+  @@map("teacher_classes")
+}
+
+model TeacherSubject {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  subjectId Int
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subjectId])
+  @@index([userId])
+  @@index([subjectId])
+  @@map("teacher_subjects")
+}
+
+model Student {
+  id              Int      @id @default(autoincrement())
+  uuid            String   @unique @default(uuid())
+  admissionNumber String   @unique
+  studentId       String   @unique
+  fullName        String
+  gender          Gender
+  dateOfBirth     DateTime
+  classId         Int
+  passport        String?
+  isActive        Boolean  @default(true)
+  parentName      String?
+  parentPhone     String?
+  parentEmail     String?
+  parentAddress   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  class        Class         @relation(fields: [classId], references: [id])
+  results      Result[]
+  omrResponses OMRResponse[]
+
+  @@index([classId])
+  @@map("students")
+}
+
+model Examination {
+  id            Int        @id @default(autoincrement())
+  uuid          String     @unique @default(uuid())
+  title         String
+  academicYear  String
+  term          Term
+  classId       Int
+  subjectId     Int
+  examType      ExamType
+  duration      Int
+  totalMarks    Int
+  difficulty    Difficulty @default(Mixed)
+  topics        String?
+  instructions  String?
+  status        ExamStatus @default(draft)
+  isShared      Boolean    @default(true)
+  teacherName   String?
+  date          DateTime?
+  aiGenerated   Boolean    @default(false)
+  aiPrompt      String?
+  hasSectionA   Boolean    @default(true)
+  hasSectionB   Boolean    @default(true)
+  hasSectionC   Boolean    @default(false)
+  hasSectionD   Boolean    @default(false)
+  sectionAMarks Int?
+  sectionBMarks Int?
+  sectionCMarks Int?
+  sectionDMarks Int?
+  createdById   Int
+  modifiedById  Int?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  class          Class           @relation(fields: [classId], references: [id])
+  subject        Subject         @relation(fields: [subjectId], references: [id])
+  createdBy      User            @relation("CreatedBy", fields: [createdById], references: [id])
+  modifiedBy     User?           @relation("ModifiedBy", fields: [modifiedById], references: [id])
+  sections       ExamSection[]
+  markingScheme  MarkingScheme?
+  omrSheets      OMRSheet[]
+  answerBooklets AnswerBooklet[]
+  results        Result[]
+
+  @@index([classId])
+  @@index([subjectId])
+  @@index([createdById])
+  @@index([status])
+  @@map("examinations")
+}
+
+model ExamSection {
+  id            Int      @id @default(autoincrement())
+  examinationId Int
+  sectionLetter String
+  title         String?
+  instructions  String?
+  totalMarks    Int
+  sortOrder     Int      @default(0)
+  twoColumns    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  examination Examination @relation(fields: [examinationId], references: [id], onDelete: Cascade)
+  questions   Question[]
+
+  @@index([examinationId])
+  @@map("exam_sections")
+}
+
+model Question {
+  id           Int          @id @default(autoincrement())
+  uuid         String       @unique @default(uuid())
+  questionId   String       @unique
+  subjectId    Int
+  sectionId    Int?
+  questionType QuestionType
+  difficulty   Difficulty   @default(Medium)
+  topic        String
+  subtopic     String?
+  questionText String
+  marks        Int          @default(1)
+  sortOrder    Int          @default(0)
+  isCompulsory Boolean      @default(false)
+  academicYear String?
+  term         Term?
+  forClass     String?
+  aiGenerated  Boolean      @default(false)
+  isActive     Boolean      @default(true)
+  createdById  Int
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  subject     Subject           @relation(fields: [subjectId], references: [id])
+  section     ExamSection?      @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  createdBy   User              @relation(fields: [createdById], references: [id])
+  options     QuestionOption[]
+  subParts    QuestionSubPart[]
+  schemeItems SchemeItem[]
+
+  @@index([subjectId])
+  @@index([sectionId])
+  @@index([createdById])
+  @@map("questions")
+}
+
+model QuestionOption {
+  id         Int     @id @default(autoincrement())
+  questionId Int
+  optionKey  String
+  optionText String
+  isCorrect  Boolean @default(false)
+  sortOrder  Int     @default(0)
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@map("question_options")
+}
+
+model QuestionSubPart {
+  id           Int    @id @default(autoincrement())
+  questionId   Int
+  partLabel    String
+  questionText String
+  marks        Int    @default(1)
+  sortOrder    Int    @default(0)
+
+  question    Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  schemeItems SchemeItem[]
+
+  @@index([questionId])
+  @@map("question_sub_parts")
+}
+
+model MarkingScheme {
+  id             Int      @id @default(autoincrement())
+  examinationId  Int      @unique
+  title          String
+  totalMarks     Int
+  isConfidential Boolean  @default(true)
+  aiGenerated    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  examination Examination @relation(fields: [examinationId], references: [id], onDelete: Cascade)
+  items       SchemeItem[]
+
+  @@map("marking_schemes")
+}
+
+model SchemeItem {
+  id             Int     @id @default(autoincrement())
+  schemeId       Int
+  questionId     Int?
+  subPartId      Int?
+  questionNumber String
+  questionText   String
+  correctAnswer  String
+  fullSolution   String?
+  calculations   String?
+  marksAllocated Int
+  marksBreakdown String?
+  sectionLetter  String
+  sortOrder      Int     @default(0)
+
+  scheme   MarkingScheme    @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  question Question?        @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  subPart  QuestionSubPart? @relation(fields: [subPartId], references: [id], onDelete: SetNull)
+
+  @@index([schemeId])
+  @@map("scheme_items")
+}
+
+model OMRSheet {
+  id            Int      @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
+  examinationId Int
+  classId       Int
+  numQuestions  Int
+  createdAt     DateTime @default(now())
+
+  examination Examination   @relation(fields: [examinationId], references: [id], onDelete: Cascade)
+  class       Class         @relation(fields: [classId], references: [id])
+  responses   OMRResponse[]
+
+  @@index([examinationId])
+  @@map("omr_sheets")
+}
+
+model OMRResponse {
+  id         Int       @id @default(autoincrement())
+  omrSheetId Int
+  studentId  Int
+  responses  String
+  score      Int?
+  markedAt   DateTime?
+  createdAt  DateTime  @default(now())
+
+  omrSheet OMRSheet @relation(fields: [omrSheetId], references: [id], onDelete: Cascade)
+  student  Student  @relation(fields: [studentId], references: [id])
+
+  @@unique([omrSheetId, studentId])
+  @@index([omrSheetId])
+  @@map("omr_responses")
+}
+
+model AnswerBooklet {
+  id            Int         @id @default(autoincrement())
+  examinationId Int
+  bookletType   BookletType @default(Branded)
+  numPages      Int         @default(8)
+  createdAt     DateTime    @default(now())
+
+  examination Examination @relation(fields: [examinationId], references: [id], onDelete: Cascade)
+
+  @@index([examinationId])
+  @@map("answer_booklets")
+}
+
+model Result {
+  id            Int       @id @default(autoincrement())
+  studentId     Int
+  examinationId Int
+  sectionAScore Int?
+  sectionBScore Int?
+  sectionCScore Int?
+  sectionDScore Int?
+  totalScore    Int?
+  grade         String?
+  position      Int?
+  remarks       String?
+  markedById    Int?
+  markedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  student     Student     @relation(fields: [studentId], references: [id])
+  examination Examination @relation(fields: [examinationId], references: [id])
+
+  @@unique([studentId, examinationId])
+  @@index([examinationId])
+  @@map("results")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  action     String
+  resource   String
+  resourceId String?
+  details    String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("audit_logs")
+}
